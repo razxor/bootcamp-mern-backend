@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express()
-
+const bcrypt = require('bcrypt');
+const salt = 10;
 const port = process.env.port || 3000
 
 app.use(cors());
@@ -9,7 +10,7 @@ app.use(express.json())
 
 
 
-const { MongoClient, ServerApiVersion, ObjectId  } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const uri = "mongodb+srv://razdoict:ZWQ0ikd1XWtT7b4z@cluster0.3kzlj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
@@ -28,6 +29,42 @@ async function run() {
         await client.connect();
         const userCol = client.db('bootcamp_online_shop').collection('users')
 
+        // API - Registration     
+        app.post('/api/signup', async (req, res) => {
+            const userData = req.body;
+            userData.password = await bcrypt.hash(userData.password, salt)
+            userData.role = 'user'
+
+            const result = await userCol.insertOne(userData)
+            res.send(result)
+        })
+        app.post('/api/login', async (req, res) => {
+            try {
+                const { email, password } = req.body;                                
+                const user = await userCol.findOne({ email: email });
+                console.log(user);
+                if (!user) {
+                    return res.status(400).json({ message: 'Invalid email or password' });
+                }
+                const isPasswordValid = await bcrypt.compare(password, user.password);
+                console.log(isPasswordValid);
+                if (!isPasswordValid) {                    
+                    return res.status(400).json({ message: 'Invalid email or password' });
+                }                
+                res.send({
+                    message: 'Login successful',
+                    user: {
+                        id: user._id,
+                        email: user.email,
+                        role: user.role
+                    }
+                })
+            } catch (error) {
+                console.error('Error during login:', error);
+                //return res.status(500).json({ message: 'Internal server error' });
+            }
+        })
+
         // API - Manage Users       
         app.post('/api/user/add', async (req, res) => {
             const userData = req.body;
@@ -40,12 +77,18 @@ async function run() {
             res.send(data);
         })
 
-        app.put('/api/user', async (req, res) => {            
-            const result = await userCol.updateOne({_id : new ObjectId(req.body.id)}, {$set:{name:req.body.name}})           
+        app.put('/api/user', async (req, res) => {
+            const result = await userCol.updateOne({ _id: new ObjectId(req.body.id) }, { $set: { name: req.body.name } })
             res.send(result);
         })
-        app.delete('/api/user/:id', async (req, res) => {            
-            const result = await userCol.deleteOne({_id: new ObjectId(req.params.id)})
+        app.delete('/api/user/:id', async (req, res) => {
+            const result = await userCol.deleteOne({ _id: new ObjectId(req.params.id) })
+            res.send(result)
+        })
+
+        app.get('/api/user/all', async (req, res) => {
+            console.log(req);
+            const result = await userCol.deleteMany({})
             res.send(result)
         })
         // end API
