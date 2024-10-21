@@ -28,6 +28,8 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         const userCol = client.db('bootcamp_online_shop').collection('users')
+        const categoryCol = client.db('bootcamp_online_shop').collection('categories')
+        const productCol = client.db('bootcamp_online_shop').collection('products')
 
         // API - Registration     
         app.post('/api/signup', async (req, res) => {
@@ -42,12 +44,12 @@ async function run() {
             try {
                 const { email, password } = req.body;                                
                 const user = await userCol.findOne({ email: email });
-                console.log(user);
+                
                 if (!user) {
                     return res.status(400).json({ message: 'Invalid email or password' });
                 }
                 const isPasswordValid = await bcrypt.compare(password, user.password);
-                console.log(isPasswordValid);
+                
                 if (!isPasswordValid) {                    
                     return res.status(400).json({ message: 'Invalid email or password' });
                 }                
@@ -86,9 +88,68 @@ async function run() {
             res.send(result)
         })
 
+        //delete all
         app.get('/api/user/all', async (req, res) => {
             console.log(req);
             const result = await userCol.deleteMany({})
+            res.send(result)
+        })
+
+        // ===========manage cat====================/
+        // ===========manage product====================/
+        app.post('/api/category/add', async (req, res) => {
+            const categoryData = req.body;
+            const result = await categoryCol.insertOne(categoryData)            
+            res.send(result)
+        })
+
+        app.get('/api/categories', async (req, res) => {
+            const data = await categoryCol.find().toArray();
+            res.send(data);
+        })
+
+        //delete all
+        app.get('/api/cat/all', async (req, res) => {
+            console.log(req);
+            const result = await categoryCol.deleteMany({})
+            res.send(result)
+        })
+        // end cat
+        // ===========manage product====================/
+        app.post('/api/product/add', async (req, res) => {
+            const productData = req.body;
+            const result = await productCol.insertOne(productData)
+            res.send(result)
+        })
+
+        app.get('/api/products', async (req, res) => {
+            const data = await productCol.find().toArray();
+            res.send(data);
+        })
+
+        app.put('/api/product', async (req, res) => {           
+            const result = await productCol.updateOne({ _id: new ObjectId(req.body._id) }, 
+            { $set: { 
+                name: req.body.name, 
+                price: req.body.price, 
+                category: req.body.caregory, 
+            } })
+            res.send(result);
+        })
+        app.delete('/api/product/:id', async (req, res) => {            
+            const result = await productCol.deleteOne({ _id: new ObjectId(req.params.id) })
+            res.send(result)
+        })
+
+        app.get('/api/product/all', async (req, res) => {
+            console.log(req);
+            const result = await productCol.deleteMany({})
+            res.send(result)
+        })
+
+        app.get('/api/product/all', async (req, res) => {
+            console.log(req);
+            const result = await productCol.deleteMany({})
             res.send(result)
         })
         // end API
