@@ -79,8 +79,16 @@ async function run() {
             res.send(data);
         })
 
-        app.put('/api/user', async (req, res) => {
-            const result = await userCol.updateOne({ _id: new ObjectId(req.body.id) }, { $set: { name: req.body.name } })
+        app.put('/api/user', async (req, res) => {            
+            const {_id, fullname, photo, role} = req.body           
+            const result = await userCol.updateOne({ _id: new ObjectId(_id) },
+             { $set: 
+                {
+                    fullname: fullname,
+                    photo: photo,
+                    role: role,
+                } 
+            })
             res.send(result);
         })
         app.delete('/api/user/:id', async (req, res) => {
@@ -127,12 +135,39 @@ async function run() {
             res.send(data);
         })
 
+        app.get('/api/product/:id', async (req, res) => {
+            try {
+              const id = req.params.id;
+                                     
+              const data =  await productCol.findOne({_id : new ObjectId(id)});
+              
+              if (!data) {
+                return res.status(404).json({ error: 'Product not found' });
+              }
+          
+              console.log(data);
+              res.status(200).send(data);
+          
+            } catch (error) {
+              console.error('Error fetching product:', error);
+              res.status(500).json({ error: 'Server error' });
+            }
+          });
+
         app.put('/api/product', async (req, res) => {           
-            const result = await productCol.updateOne({ _id: new ObjectId(req.body._id) }, 
+            const {_id, bookName,price,category, author, image, totalPages, rating, publisher, yearOfPublishing} = req.body
+            const result = await productCol.updateOne({ _id: new ObjectId(_id) }, 
             { $set: { 
-                name: req.body.name, 
-                price: req.body.price, 
-                category: req.body.caregory, 
+                bookName: bookName, 
+                price: price, 
+                category: category, 
+
+                author: author, 
+                image: image, 
+                totalPages: totalPages, 
+                rating: rating, 
+                publisher: publisher, 
+                yearOfPublishing: yearOfPublishing, 
             } })
             res.send(result);
         })
@@ -141,8 +176,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/api/product/all', async (req, res) => {
-            console.log(req);
+        app.get('/api/product_all', async (req, res) => {            
             const result = await productCol.deleteMany({})
             res.send(result)
         })
