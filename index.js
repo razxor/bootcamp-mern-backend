@@ -30,16 +30,26 @@ async function run() {
         const userCol = client.db('bootcamp_online_shop').collection('users')
         const categoryCol = client.db('bootcamp_online_shop').collection('categories')
         const productCol = client.db('bootcamp_online_shop').collection('products')
+        const orderCol = client.db('bootcamp_online_shop').collection('orders')
 
         // API - Registration     
         app.post('/api/signup', async (req, res) => {
-            const userData = req.body;
-            userData.password = await bcrypt.hash(userData.password, salt)
-            userData.role = 'user'
-
+            const userData = req.body;                       
+            userData.password = await bcrypt.hash(userData.password, salt)          
             const result = await userCol.insertOne(userData)
             res.send(result)
         })
+
+        app.get('/api/user/:uid', async (req, res) => {            
+            const result = await userCol.findOne({ uid: req.params.uid })
+            if (result) {
+                res.send(result); // Send the result if found
+            } else {
+                res.status(404).send({ message: 'User not found' }); // Send 404 if no result
+            }
+        })
+
+
         app.post('/api/login', async (req, res) => {
             try {
                 const { email, password } = req.body;                                
@@ -47,7 +57,7 @@ async function run() {
                 
                 if (!user) {
                     return res.status(400).json({ message: 'Invalid email or password' });
-                }
+                }                
                 const isPasswordValid = await bcrypt.compare(password, user.password);
                 
                 if (!isPasswordValid) {                    
@@ -55,11 +65,7 @@ async function run() {
                 }                
                 res.send({
                     message: 'Login successful',
-                    user: {
-                        id: user._id,
-                        email: user.email,
-                        role: user.role
-                    }
+                    user
                 })
             } catch (error) {
                 console.error('Error during login:', error);
@@ -67,7 +73,22 @@ async function run() {
             }
         })
 
-        // API - Manage Users       
+        app.post('/api/order', async (req, res) => {
+            let productData =  req.body;                        
+            // productData = {...req.body,  product_id : productData._id}
+            // delete productData._id;
+            console.log('product data ', productData);
+            
+            const result = await orderCol.insertOne(productData)
+            res.send(result)
+        })
+
+        // API - Manage Users     
+        app.get('/api/user_orders', async (req, res) => {            
+            const result = await orderCol.find().toArray();
+            res.send(result)
+        })  
+
         app.post('/api/user/add', async (req, res) => {
             const userData = req.body;
             const result = await userCol.insertOne(userData)
@@ -97,8 +118,7 @@ async function run() {
         })
 
         //delete all
-        app.get('/api/user/all', async (req, res) => {
-            console.log(req);
+        app.get('/api/user_delete_all', async (req, res) => {
             const result = await userCol.deleteMany({})
             res.send(result)
         })
@@ -117,8 +137,7 @@ async function run() {
         })
 
         //delete all
-        app.get('/api/cat/all', async (req, res) => {
-            console.log(req);
+        app.get('/api/cat/all', async (req, res) => {            
             const result = await categoryCol.deleteMany({})
             res.send(result)
         })
@@ -143,9 +162,7 @@ async function run() {
               
               if (!data) {
                 return res.status(404).json({ error: 'Product not found' });
-              }
-          
-              console.log(data);
+              }                       
               res.status(200).send(data);
           
             } catch (error) {
