@@ -34,13 +34,13 @@ async function run() {
 
         // API - Registration     
         app.post('/api/signup', async (req, res) => {
-            const userData = req.body;                       
-            userData.password = await bcrypt.hash(userData.password, salt)          
+            const userData = req.body;
+            userData.password = await bcrypt.hash(userData.password, salt)
             const result = await userCol.insertOne(userData)
             res.send(result)
         })
 
-        app.get('/api/user/:uid', async (req, res) => {            
+        app.get('/api/user/:uid', async (req, res) => {
             const result = await userCol.findOne({ uid: req.params.uid })
             if (result) {
                 res.send(result); // Send the result if found
@@ -52,17 +52,17 @@ async function run() {
 
         app.post('/api/login', async (req, res) => {
             try {
-                const { email, password } = req.body;                                
+                const { email, password } = req.body;
                 const user = await userCol.findOne({ email: email });
-                
+
                 if (!user) {
                     return res.status(400).json({ message: 'Invalid email or password' });
-                }                
+                }
                 const isPasswordValid = await bcrypt.compare(password, user.password);
-                
-                if (!isPasswordValid) {                    
+
+                if (!isPasswordValid) {
                     return res.status(400).json({ message: 'Invalid email or password' });
-                }                
+                }
                 res.send({
                     message: 'Login successful',
                     user
@@ -73,21 +73,50 @@ async function run() {
             }
         })
 
+        app.get('/api/categorywise_products/:cat_name', async (req, res) => {           
+            const result = await productCol.find({category:req.params.cat_name}).toArray()
+            res.send(result)
+        })
+
+
         app.post('/api/order', async (req, res) => {
-            let productData =  req.body;                        
+            let productData = req.body;
             // productData = {...req.body,  product_id : productData._id}
             // delete productData._id;
             console.log('product data ', productData);
-            
+
             const result = await orderCol.insertOne(productData)
             res.send(result)
         })
 
+
+        async function getProduct(id) {
+            return await productCol.findOne({ _id: new ObjectId(id) })
+        }
+        app.get('/api/myOrder/:userId', async (req, res) => {
+            const result = await orderCol.find({ user_id: req.params.userId }).toArray()
+            const data =
+                await Promise.all(
+                    result.map(async item => {
+                        const productData = await getProduct(item.product_id);
+                        return {
+                            ...item,
+                            product: productData,  // Add product data to each order
+                        };
+                    })
+                )
+            // Calculate total spent
+            const totalSpent = data.reduce((sum, order) => {
+                return sum + (parseFloat(order.product?.price) || 0); // Assuming each product has a 'price' field
+            }, 0);
+            res.send({orders:data, totalSpent})
+        })
+
         // API - Manage Users     
-        app.get('/api/user_orders', async (req, res) => {            
+        app.get('/api/user_orders', async (req, res) => {
             const result = await orderCol.find().toArray();
             res.send(result)
-        })  
+        })
 
         app.post('/api/user/add', async (req, res) => {
             const userData = req.body;
@@ -100,16 +129,17 @@ async function run() {
             res.send(data);
         })
 
-        app.put('/api/user', async (req, res) => {            
-            const {_id, fullname, photo, role} = req.body           
+        app.put('/api/user', async (req, res) => {
+            const { _id, fullname, photo, role } = req.body
             const result = await userCol.updateOne({ _id: new ObjectId(_id) },
-             { $set: 
                 {
-                    fullname: fullname,
-                    photo: photo,
-                    role: role,
-                } 
-            })
+                    $set:
+                    {
+                        fullname: fullname,
+                        photo: photo,
+                        role: role,
+                    }
+                })
             res.send(result);
         })
         app.delete('/api/user/:id', async (req, res) => {
@@ -119,7 +149,7 @@ async function run() {
 
         //delete all
         app.get('/api/user_delete_all', async (req, res) => {
-            const result = await userCol.deleteMany({})
+            const result = await categoryCol.deleteMany({})
             res.send(result)
         })
 
@@ -127,7 +157,7 @@ async function run() {
         // ===========manage product====================/
         app.post('/api/category/add', async (req, res) => {
             const categoryData = req.body;
-            const result = await categoryCol.insertOne(categoryData)            
+            const result = await categoryCol.insertOne(categoryData)
             res.send(result)
         })
 
@@ -137,7 +167,7 @@ async function run() {
         })
 
         //delete all
-        app.get('/api/cat/all', async (req, res) => {            
+        app.get('/api/cat/all', async (req, res) => {
             const result = await categoryCol.deleteMany({})
             res.send(result)
         })
@@ -156,44 +186,46 @@ async function run() {
 
         app.get('/api/product/:id', async (req, res) => {
             try {
-              const id = req.params.id;
-                                     
-              const data =  await productCol.findOne({_id : new ObjectId(id)});
-              
-              if (!data) {
-                return res.status(404).json({ error: 'Product not found' });
-              }                       
-              res.status(200).send(data);
-          
+                const id = req.params.id;
+
+                const data = await productCol.findOne({ _id: new ObjectId(id) });
+
+                if (!data) {
+                    return res.status(404).json({ error: 'Product not found' });
+                }
+                res.status(200).send(data);
+
             } catch (error) {
-              console.error('Error fetching product:', error);
-              res.status(500).json({ error: 'Server error' });
+                console.error('Error fetching product:', error);
+                res.status(500).json({ error: 'Server error' });
             }
-          });
+        });
 
-        app.put('/api/product', async (req, res) => {           
-            const {_id, bookName,price,category, author, image, totalPages, rating, publisher, yearOfPublishing} = req.body
-            const result = await productCol.updateOne({ _id: new ObjectId(_id) }, 
-            { $set: { 
-                bookName: bookName, 
-                price: price, 
-                category: category, 
+        app.put('/api/product', async (req, res) => {
+            const { _id, bookName, price, category, author, image, totalPages, rating, publisher, yearOfPublishing } = req.body
+            const result = await productCol.updateOne({ _id: new ObjectId(_id) },
+                {
+                    $set: {
+                        bookName: bookName,
+                        price: price,
+                        category: category,
 
-                author: author, 
-                image: image, 
-                totalPages: totalPages, 
-                rating: rating, 
-                publisher: publisher, 
-                yearOfPublishing: yearOfPublishing, 
-            } })
+                        author: author,
+                        image: image,
+                        totalPages: totalPages,
+                        rating: rating,
+                        publisher: publisher,
+                        yearOfPublishing: yearOfPublishing,
+                    }
+                })
             res.send(result);
         })
-        app.delete('/api/product/:id', async (req, res) => {            
+        app.delete('/api/product/:id', async (req, res) => {
             const result = await productCol.deleteOne({ _id: new ObjectId(req.params.id) })
             res.send(result)
         })
 
-        app.get('/api/product_all', async (req, res) => {            
+        app.get('/api/product_all', async (req, res) => {
             const result = await productCol.deleteMany({})
             res.send(result)
         })
