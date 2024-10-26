@@ -78,6 +78,11 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/api/featured_products', async (req, res) => {           
+            const result = await productCol.find({isFeatured:true}).toArray()
+            res.send(result)
+        })
+
 
         app.post('/api/order', async (req, res) => {
             let productData = req.body;
@@ -129,8 +134,9 @@ async function run() {
             res.send(data);
         })
 
-        app.put('/api/user', async (req, res) => {
-            const { _id, fullname, photo, role } = req.body
+        app.put('/api/user', async (req, res) => {      
+            console.log(req.body);      
+            const { _id, fullname, photo, role, isAdmin, phone, address } = req.body
             const result = await userCol.updateOne({ _id: new ObjectId(_id) },
                 {
                     $set:
@@ -138,10 +144,15 @@ async function run() {
                         fullname: fullname,
                         photo: photo,
                         role: role,
+                        isAdmin: isAdmin,
+                        phone: phone,
+                        address: address,
                     }
                 })
             res.send(result);
-        })
+        })       
+
+
         app.delete('/api/user/:id', async (req, res) => {
             const result = await userCol.deleteOne({ _id: new ObjectId(req.params.id) })
             res.send(result)
@@ -235,6 +246,26 @@ async function run() {
             const result = await productCol.deleteMany({})
             res.send(result)
         })
+
+        app.get('/api/admin_order', async (req, res) => {
+            const result = await orderCol.find({}).toArray()
+            const data =
+                await Promise.all(
+                    result.map(async item => {
+                        const productData = await getProduct(item.product_id);
+                        return {
+                            ...item,
+                            product: productData,  // Add product data to each order
+                        };
+                    })
+                )
+            // Calculate total spent
+            const totalSpent = data.reduce((sum, order) => {
+                return sum + (parseFloat(order.product?.price) || 0); // Assuming each product has a 'price' field
+            }, 0);
+            res.send({orders:data, totalSpent})
+        })
+
         // end API
 
 
