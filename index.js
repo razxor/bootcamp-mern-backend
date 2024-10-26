@@ -79,7 +79,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/api/featured_products', async (req, res) => {           
+        app.get(`${process.env.BASE_URL}/api/featured_products`, async (req, res) => {           
             const result = await productCol.find({isFeatured:true}).toArray()
             res.send(result)
         })
