@@ -182,6 +182,23 @@ async function run() {
             res.send(result)
         })
 
+        app.put('/api/category', async (req, res) => {
+            const {_id, name, image} = req.body;
+            const result = await categoryCol.updateOne({ _id: new ObjectId(_id)}, {
+                $set: {
+                    name:name,
+                    image:image,
+                }
+            })
+            res.send(result)
+        })
+
+        
+        app.delete('/api/category/:id', async (req, res) => {
+            const result = await categoryCol.deleteOne({ _id: new ObjectId(req.params.id) })
+            res.send(result)
+        })
+
         app.get('/api/categories', async (req, res) => {
             const data = await categoryCol.find().toArray();
             res.send(data);
