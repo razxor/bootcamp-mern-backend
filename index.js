@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
     }
 });
 
-app.get('/api/route', async (req, res) => {    
+router.get('/route', async (req, res) => {    
     res.send('API Route working')
 })
 
@@ -293,14 +293,6 @@ app.get('/', (req, res) => {
     res.send('Welcome to my site');
 })
 
-
-// app.get('/api/courses/:id', (req, res) => {
-//     let id = req.params.id
-//     let data = courses.find((item) => {
-//         return item.course_id == id
-//     })
-//     res.send(data);
-// })
 
 app.listen(port, () => {
     console.log(`Server is running on ${port}`);
