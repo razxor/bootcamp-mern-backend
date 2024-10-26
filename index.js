@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const app = express()
-// const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const salt = 10;
 const port = process.env.PORT || 3000
 
