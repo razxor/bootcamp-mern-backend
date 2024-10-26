@@ -24,6 +24,10 @@ const client = new MongoClient(uri, {
     }
 });
 
+app.get('/api/route', async (req, res) => {    
+    res.send('API Route working')
+})
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -33,7 +37,12 @@ async function run() {
         const productCol = client.db('bootcamp_online_shop').collection('products')
         const orderCol = client.db('bootcamp_online_shop').collection('orders')
 
-        // API - Registration     
+        // API - Registration  
+        app.get('/api/db', async (req, res) => {
+            const result = await client.db("admin").command({ ping: 1 });
+            res.send(result)
+        })
+
         app.post('/api/signup', async (req, res) => {
             const userData = req.body;
             userData.password = await bcrypt.hash(userData.password, salt)
